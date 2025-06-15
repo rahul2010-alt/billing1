@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { RefreshCw, Edit, Printer, Save, X, HelpCircle } from 'lucide-react';
+import { RefreshCw, Edit, Printer, Save, X, HelpCircle, Plus, Trash2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import Select from '../UI/Select';
 import Input from '../UI/Input';
 import Button from '../UI/Button';
-import Table from '../UI/Table';
 import { useSuppliers, useProducts, usePurchases } from '../../utils/hooks/useSupabase';
-import { calculateGst } from '../../utils/calculations';
+import { useAppContext } from '../../utils/context/AppContext';
 import "react-datepicker/dist/react-datepicker.css";
 
 interface PurchaseEntryFormProps {
@@ -17,6 +16,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
   const { suppliers } = useSuppliers();
   const { products } = useProducts();
   const { createPurchase } = usePurchases();
+  const { addNotification } = useAppContext();
 
   const [formData, setFormData] = useState({
     date: new Date(),
@@ -43,9 +43,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
     amount: number;
   }>>([]);
 
-  const [activeTab, setActiveTab] = useState<
-    'details' | 'discDetails' | 'vatBreakup' | 'outstanding' | 'prodHistory' | 'gst' | 'dosInvoice'
-  >('details');
+  const [activeTab, setActiveTab] = useState<string>('details');
 
   const handleAddItem = () => {
     setItems([
@@ -56,7 +54,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
         productName: '',
         batchNo: '',
         expiryDate: null,
-        quantity: 0,
+        quantity: 1,
         scheme: 0,
         rate: 0,
         mrp: 0,
@@ -66,6 +64,10 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
         amount: 0
       }
     ]);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setItems(items.filter(item => item.id !== id));
   };
 
   const handleItemChange = (id: string, changes: Partial<typeof items[0]>) => {
@@ -90,7 +92,10 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
   };
 
   const handleSave = async () => {
-    if (!formData.supplier || items.length === 0) return;
+    if (!formData.supplier || items.length === 0) {
+      addNotification('Please select a supplier and add at least one item');
+      return;
+    }
 
     try {
       const totals = items.reduce(
@@ -126,13 +131,12 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
         total: item.amount
       }));
 
-      await createPurchase({
-        ...purchaseData
-      }, purchaseItems);
-
+      await createPurchase(purchaseData, purchaseItems);
+      addNotification('Purchase created successfully!');
       onClose();
     } catch (error) {
       console.error('Error saving purchase:', error);
+      addNotification('Error creating purchase: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -162,6 +166,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
 
         <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
           <div className="space-y-6">
+            {/* Tab Navigation */}
             <div className="flex space-x-4">
               <Button
                 variant={activeTab === 'details' ? 'primary' : 'outline'}
@@ -214,6 +219,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
               </Button>
             </div>
 
+            {/* Form Fields */}
             <div className="grid grid-cols-3 gap-6">
               <div>
                 <Input
@@ -256,152 +262,160 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
               />
             </div>
 
+            {/* Items Section */}
             <div className="border rounded-lg overflow-hidden">
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
+              <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                 <h3 className="text-lg font-medium text-gray-900">***GST BILL***</h3>
-              </div>
-              
-              <Table
-                columns={[
-                  {
-                    header: 'Item Name',
-                    accessor: (item: any) => (
-                      <Select
-                        value={item.productId}
-                        onChange={(e) => {
-                          const product = products.find(p => p.id === e.target.value);
-                          if (product) {
-                            handleItemChange(item.id, {
-                              productId: product.id,
-                              productName: product.name,
-                              rate: Number(product.purchasePrice) || 0,
-                              tax: Number(product.gstRate) || 0
-                            });
-                          }
-                        }}
-                        options={[
-                          { value: '', label: 'Select Product' },
-                          ...products.map(p => ({
-                            value: p.id,
-                            label: p.name
-                          }))
-                        ]}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Batch No.',
-                    accessor: (item: any) => (
-                      <Input
-                        type="text"
-                        value={item.batchNo}
-                        onChange={(e) => handleItemChange(item.id, { batchNo: e.target.value })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Expiry',
-                    accessor: (item: any) => (
-                      <DatePicker
-                        selected={item.expiryDate}
-                        onChange={(date) => handleItemChange(item.id, { expiryDate: date })}
-                        dateFormat="MM/yyyy"
-                        showMonthYearPicker
-                        className="w-full rounded-md border-gray-300"
-                      />
-                    )
-                  },
-                  {
-                    header: 'Quantity',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(item.id, { quantity: parseInt(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Scheme',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.scheme}
-                        onChange={(e) => handleItemChange(item.id, { scheme: parseInt(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Rate',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.rate}
-                        onChange={(e) => handleItemChange(item.id, { rate: parseFloat(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'MRP',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.mrp}
-                        onChange={(e) => handleItemChange(item.id, { mrp: parseFloat(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Disc %',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.discount}
-                        onChange={(e) => handleItemChange(item.id, { discount: parseFloat(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Tax %',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.tax}
-                        onChange={(e) => handleItemChange(item.id, { tax: parseFloat(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Packing',
-                    accessor: (item: any) => (
-                      <Input
-                        type="number"
-                        value={item.packing}
-                        onChange={(e) => handleItemChange(item.id, { packing: parseFloat(e.target.value) || 0 })}
-                      />
-                    )
-                  },
-                  {
-                    header: 'Amount',
-                    accessor: (item: any) => `₹${(Number(item.amount) || 0).toFixed(2)}`,
-                    align: 'right' as const
-                  }
-                ]}
-                data={items}
-                emptyMessage="No items added"
-              />
-
-              <div className="p-4 bg-gray-50 border-t border-gray-200">
                 <Button
                   variant="outline"
                   size="sm"
+                  icon={<Plus className="h-4 w-4" />}
                   onClick={handleAddItem}
                 >
                   Add Item
                 </Button>
               </div>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Item Name
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Batch No.
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Expiry
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quantity
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Rate
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Disc %
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tax %
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-4">
+                          <select
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.productId}
+                            onChange={(e) => {
+                              const product = products.find(p => p.id === e.target.value);
+                              if (product) {
+                                handleItemChange(item.id, {
+                                  productId: product.id,
+                                  productName: product.name,
+                                  rate: Number(product.purchasePrice) || 0,
+                                  tax: Number(product.gstRate) || 0
+                                });
+                              }
+                            }}
+                          >
+                            <option value="">Select Product</option>
+                            {products.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="text"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.batchNo}
+                            onChange={(e) => handleItemChange(item.id, { batchNo: e.target.value })}
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <DatePicker
+                            selected={item.expiryDate}
+                            onChange={(date) => handleItemChange(item.id, { expiryDate: date })}
+                            dateFormat="MM/yyyy"
+                            showMonthYearPicker
+                            className="w-full rounded-md border-gray-300 text-sm"
+                            placeholderText="MM/YYYY"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            min="1"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(item.id, { quantity: parseInt(e.target.value) || 0 })}
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.rate}
+                            onChange={(e) => handleItemChange(item.id, { rate: parseFloat(e.target.value) || 0 })}
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.discount}
+                            onChange={(e) => handleItemChange(item.id, { discount: parseFloat(e.target.value) || 0 })}
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
+                            value={item.tax}
+                            onChange={(e) => handleItemChange(item.id, { tax: parseFloat(e.target.value) || 0 })}
+                          />
+                        </td>
+                        <td className="px-4 py-4 text-right text-sm font-medium">
+                          ₹{(Number(item.amount) || 0).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Trash2 className="h-4 w-4" />}
+                            onClick={() => handleRemoveItem(item.id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                    {items.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-500">
+                          No items added. Click "Add Item" to start adding products.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
+            {/* Summary Section */}
             <div className="flex justify-between">
               <div className="w-1/3">
                 <Input
@@ -433,6 +447,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={onClose}>
                 Cancel
