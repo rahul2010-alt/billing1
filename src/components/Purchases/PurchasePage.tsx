@@ -1,15 +1,100 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Download } from 'lucide-react';
+import { Plus, Search, Filter, Download, Eye, Edit } from 'lucide-react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
+import Table from '../UI/Table';
 import PurchaseEntryForm from './PurchaseEntryForm';
 import { usePurchases } from '../../utils/hooks/useSupabase';
+import { format } from 'date-fns';
 
 const PurchasePage: React.FC = () => {
   const [showPurchaseEntry, setShowPurchaseEntry] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { purchases, loading } = usePurchases();
+
+  const filteredPurchases = searchQuery
+    ? purchases.filter(purchase =>
+        purchase.purchase_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        purchase.supplier?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : purchases;
+
+  const columns = [
+    {
+      header: 'Purchase #',
+      accessor: 'purchase_number',
+      align: 'left' as const,
+    },
+    {
+      header: 'Date',
+      accessor: (purchase: any) => format(new Date(purchase.date), 'dd/MM/yyyy'),
+      align: 'left' as const,
+    },
+    {
+      header: 'Supplier',
+      accessor: (purchase: any) => (
+        <div>
+          <div className="font-medium">{purchase.supplier?.name || 'Unknown Supplier'}</div>
+          {purchase.supplier?.gstin && (
+            <div className="text-xs text-gray-500">GSTIN: {purchase.supplier.gstin}</div>
+          )}
+        </div>
+      ),
+      align: 'left' as const,
+    },
+    {
+      header: 'Amount',
+      accessor: (purchase: any) => (
+        <div className="text-right">
+          <div className="font-medium">₹{purchase.grand_total.toLocaleString()}</div>
+          <div className="text-xs text-gray-500">
+            Paid: ₹{purchase.amount_paid.toLocaleString()}
+          </div>
+        </div>
+      ),
+      align: 'right' as const,
+    },
+    {
+      header: 'Status',
+      accessor: (purchase: any) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          purchase.payment_status === 'paid' 
+            ? 'bg-green-100 text-green-800' 
+            : purchase.payment_status === 'partial'
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {purchase.payment_status.charAt(0).toUpperCase() + purchase.payment_status.slice(1)}
+        </span>
+      ),
+      align: 'center' as const,
+    },
+    {
+      header: 'Actions',
+      accessor: (purchase: any) => (
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Eye className="h-4 w-4" />}
+            onClick={() => {/* Handle view */}}
+          >
+            View
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Edit className="h-4 w-4" />}
+            onClick={() => {/* Handle edit */}}
+          >
+            Edit
+          </Button>
+        </div>
+      ),
+      align: 'right' as const,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -62,7 +147,12 @@ const PurchasePage: React.FC = () => {
           </div>
           
           <Card>
-            {/* Existing purchase list table */}
+            <Table
+              columns={columns}
+              data={filteredPurchases}
+              loading={loading}
+              emptyMessage="No purchases found"
+            />
           </Card>
         </>
       )}
