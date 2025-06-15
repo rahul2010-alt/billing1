@@ -26,8 +26,8 @@ export const useCustomers = () => {
         if (status === 'SUBSCRIBED') {
           console.log('Subscribed to customers changes');
         } else if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription error for customers:', err);
-        // Don't show notification for subscription errors as they're not critical
+          console.error('Realtime subscription error for customers');
+        }
       });
 
     return () => {
@@ -112,8 +112,8 @@ export const useProducts = () => {
         if (status === 'SUBSCRIBED') {
           console.log('Subscribed to products changes');
         } else if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription error for products:', err);
-        // Don't show notification for subscription errors as they're not critical
+          console.error('Realtime subscription error for products');
+        }
       });
 
     return () => {
@@ -202,8 +202,8 @@ export const usePurchases = () => {
         if (status === 'SUBSCRIBED') {
           console.log('Subscribed to purchases changes');
         } else if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription error for purchases:', err);
-        // Don't show notification for subscription errors as they're not critical
+          console.error('Realtime subscription error for purchases');
+        }
       });
 
     return () => {
@@ -293,8 +293,8 @@ export const useSuppliers = () => {
         if (status === 'SUBSCRIBED') {
           console.log('Subscribed to suppliers changes');
         } else if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription error for suppliers:', err);
-        // Don't show notification for subscription errors as they're not critical
+          console.error('Realtime subscription error for suppliers');
+        }
       });
 
     return () => {
