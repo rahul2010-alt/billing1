@@ -20,16 +20,16 @@ const BillingPage: React.FC = () => {
   const printRef = useRef<HTMLDivElement>(null);
   
   const [printSettings, setPrintSettings] = useState({
-    storeName: 'M R Medical & General Store',
-    address: 'Shop No. 123, Medical Complex\nMain Road, Mumbai - 400001\nMaharashtra, India',
-    phone: '+91 98765 43210',
-    email: 'info@mrmedical.com',
-    gstin: '27XXXXX1234X1ZX',
-    dlNumber: 'DL-MH-12345',
+    storeName: 'Medical & General Store',
+    address: 'G - 19, 109-110, Address Here, Address Here, Address Here, City. Phone: 1300-999-9999',
+    phone: '1300-999-9999',
+    email: 'info@medicalstore.com',
+    gstin: 'INPUT HERE',
+    dlNumber: '136/99/20XX',
     stateCode: '27',
     showLogo: true,
     showSignature: true,
-    termsAndConditions: '1. Goods once sold will not be taken back.\n2. All disputes subject to local jurisdiction.\n3. Prescription required for scheduled drugs.'
+    termsAndConditions: 'All disputes subject to CITY Jurisdiction only. Medicines without Batch No. & Exp. will not be taken back. Please consult Dr. before using the medicines. E. & O.E.'
   });
   
   const filteredInvoices = searchQuery 
@@ -55,7 +55,7 @@ const BillingPage: React.FC = () => {
     removeAfterPrint: true,
     pageStyle: `
       @page {
-        size: 80mm auto;
+        size: A4;
         margin: 0;
       }
       @media print {

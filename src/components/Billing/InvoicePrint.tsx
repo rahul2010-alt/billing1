@@ -29,168 +29,238 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoicePrintProps>(({ invoice, s
   return (
     <div 
       ref={ref} 
-      className="bg-white p-6 text-black" 
-      style={{ width: '80mm', fontSize: '12px', fontFamily: 'monospace' }}
+      className="bg-white text-black" 
+      style={{ width: '210mm', minHeight: '297mm', fontSize: '12px', fontFamily: 'Arial, sans-serif', padding: '10mm' }}
       onClick={handlePrintClick}
     >
-      {/* Header */}
-      <div className="text-center border-b-2 border-dashed border-gray-400 pb-4 mb-4">
-        {settings.showLogo && (
-          <div className="mb-2">
-            <div className="w-16 h-16 bg-teal-600 rounded-full mx-auto flex items-center justify-center text-white font-bold text-lg">
-              MR
-            </div>
+      {/* Header Section */}
+      <div className="border-2 border-red-600 mb-4">
+        {/* Top Header with Drug License and GST */}
+        <div className="bg-white px-4 py-2 flex justify-between items-center text-xs">
+          <div className="text-red-600 font-bold">
+            Drug Lic No.: {settings.dlNumber}
           </div>
-        )}
-        <h1 className="text-lg font-bold uppercase">{settings.storeName}</h1>
-        <p className="text-xs mt-1">{settings.address}</p>
-        <p className="text-xs">Ph: {settings.phone}</p>
-        {settings.email && <p className="text-xs">Email: {settings.email}</p>}
-        <div className="mt-2 text-xs">
-          <p>GSTIN: {settings.gstin}</p>
-          <p>DL No: {settings.dlNumber}</p>
-          <p>State Code: {settings.stateCode}</p>
+          <div className="text-red-600 font-bold">
+            GST No.: {settings.gstin}
+          </div>
+        </div>
+
+        {/* Main Header */}
+        <div className="bg-red-600 text-white text-center py-3">
+          <h1 className="text-2xl font-bold">{settings.storeName}</h1>
+          <p className="text-sm font-semibold">CHEMIST & DRUGGIST</p>
+          <p className="text-xs mt-1">{settings.address}</p>
+        </div>
+
+        {/* Cash Memo Header */}
+        <div className="bg-red-600 text-white text-right px-4 py-1">
+          <span className="bg-white text-red-600 px-3 py-1 font-bold text-sm">CASH MEMO</span>
         </div>
       </div>
 
-      {/* Invoice Details */}
-      <div className="border-b border-dashed border-gray-400 pb-3 mb-3">
-        <div className="flex justify-between text-xs">
-          <span>Invoice: {invoice.invoice_number}</span>
-          <span>Date: {format(new Date(invoice.date), 'dd/MM/yyyy')}</span>
-        </div>
-        <div className="mt-1 text-xs">
-          <p>Customer: {invoice.customer?.name || 'Walk-in Customer'}</p>
-          {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
-          {invoice.customer?.phone && <p>Phone: {invoice.customer.phone}</p>}
+      {/* Customer and Invoice Details */}
+      <div className="border border-red-600 mb-4">
+        <div className="flex">
+          {/* Left Side - Customer Details */}
+          <div className="w-1/2 border-r border-red-600 p-3">
+            <div className="mb-2">
+              <span className="font-bold text-red-600">Name:</span>
+              <span className="ml-2">{invoice.customer?.name || 'Walk-in Customer'}</span>
+            </div>
+            <div>
+              <span className="font-bold text-red-600">Dr.:</span>
+              <span className="ml-2">_________________________</span>
+            </div>
+          </div>
+          
+          {/* Right Side - Invoice Details */}
+          <div className="w-1/2 p-3">
+            <div className="mb-2">
+              <span className="font-bold text-red-600">Invoice No:</span>
+              <span className="ml-2">{invoice.invoice_number}</span>
+            </div>
+            <div>
+              <span className="font-bold text-red-600">Date:</span>
+              <span className="ml-2">{format(new Date(invoice.date), 'dd/MM/yyyy')}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Items Table */}
-      <div className="border-b border-dashed border-gray-400 pb-3 mb-3">
-        <table className="w-full text-xs">
+      <div className="border border-red-600 mb-4">
+        <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-300">
-              <th className="text-left py-1">Item</th>
-              <th className="text-center py-1">Qty</th>
-              <th className="text-right py-1">Rate</th>
-              <th className="text-right py-1">Amount</th>
+            <tr className="bg-red-600 text-white">
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">Qty.</th>
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">Pack</th>
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">Mfg.</th>
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">PARTICULARS</th>
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">Batch</th>
+              <th className="border-r border-white px-2 py-2 text-xs font-bold">Exp.</th>
+              <th className="px-2 py-2 text-xs font-bold">Amount</th>
             </tr>
           </thead>
           <tbody>
             {invoice.items?.map((item: any, index: number) => (
-              <tr key={index} className="border-b border-gray-200">
-                <td className="py-1">
-                  <div>{item.product?.name}</div>
+              <tr key={index} className="border-b border-red-600">
+                <td className="border-r border-red-600 px-2 py-2 text-center text-xs">{item.quantity}</td>
+                <td className="border-r border-red-600 px-2 py-2 text-center text-xs">{item.product?.unit || '-'}</td>
+                <td className="border-r border-red-600 px-2 py-2 text-center text-xs">{item.product?.manufacturer || '-'}</td>
+                <td className="border-r border-red-600 px-2 py-2 text-xs">
+                  <div className="font-semibold">{item.product?.name}</div>
                   <div className="text-xs text-gray-600">HSN: {item.product?.hsn_code}</div>
-                  <div className="text-xs text-gray-600">Batch: {item.product?.batch_number}</div>
                 </td>
-                <td className="text-center py-1">{item.quantity}</td>
-                <td className="text-right py-1">{formatCurrency(item.price)}</td>
-                <td className="text-right py-1">{formatCurrency(item.total)}</td>
+                <td className="border-r border-red-600 px-2 py-2 text-center text-xs">{item.product?.batch_number || '-'}</td>
+                <td className="border-r border-red-600 px-2 py-2 text-center text-xs">
+                  {item.product?.expiry_date ? format(new Date(item.product.expiry_date), 'MM/yy') : '-'}
+                </td>
+                <td className="px-2 py-2 text-right text-xs">{formatCurrency(item.total)}</td>
+              </tr>
+            ))}
+            
+            {/* Add empty rows to fill space */}
+            {Array.from({ length: Math.max(0, 8 - (invoice.items?.length || 0)) }, (_, i) => (
+              <tr key={`empty-${i}`} className="border-b border-red-600" style={{ height: '30px' }}>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="border-r border-red-600 px-2 py-2"></td>
+                <td className="px-2 py-2"></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Totals */}
-      <div className="border-b border-dashed border-gray-400 pb-3 mb-3">
-        <div className="text-xs space-y-1">
-          <div className="flex justify-between">
-            <span>Subtotal:</span>
-            <span>{formatCurrency(invoice.subtotal)}</span>
+      {/* Footer Section */}
+      <div className="border border-red-600">
+        <div className="flex">
+          {/* Left Side - Currency and Terms */}
+          <div className="w-1/2 border-r border-red-600 p-3">
+            <div className="mb-4">
+              <span className="font-bold text-red-600">Currency Here:</span>
+              <div className="mt-2 text-xs">
+                <strong>Rupees {invoice.grand_total ? convertNumberToWords(invoice.grand_total) : 'Zero'} Only</strong>
+              </div>
+            </div>
+            
+            <div className="text-xs">
+              <div className="font-bold text-red-600 mb-2">All disputes subject to CITY Jurisdiction only:</div>
+              <div>Medicines without Batch No. & Exp. will not be taken back.</div>
+              <div>Please consult Dr. before using the medicines. E. & O.E.</div>
+            </div>
           </div>
-          {invoice.total_discount > 0 && (
-            <div className="flex justify-between">
-              <span>Discount:</span>
-              <span>-{formatCurrency(invoice.total_discount)}</span>
+          
+          {/* Right Side - Total and Signature */}
+          <div className="w-1/2 p-3">
+            <div className="mb-4">
+              <div className="bg-red-600 text-white px-2 py-1 text-right font-bold">
+                R.O. TOTAL: {formatCurrency(invoice.grand_total)}
+              </div>
             </div>
-          )}
-          <div className="flex justify-between">
-            <span>Taxable Value:</span>
-            <span>{formatCurrency(invoice.total_taxable_value)}</span>
-          </div>
-          {invoice.total_cgst > 0 && (
-            <div className="flex justify-between">
-              <span>CGST:</span>
-              <span>{formatCurrency(invoice.total_cgst)}</span>
+            
+            <div className="text-center mt-8">
+              <div className="text-xs font-bold text-red-600">For: {settings.storeName}</div>
+              <div className="mt-8 border-t border-gray-400 pt-2 text-xs">
+                Authorised Signatory
+              </div>
             </div>
-          )}
-          {invoice.total_sgst > 0 && (
-            <div className="flex justify-between">
-              <span>SGST:</span>
-              <span>{formatCurrency(invoice.total_sgst)}</span>
-            </div>
-          )}
-          {invoice.total_igst > 0 && (
-            <div className="flex justify-between">
-              <span>IGST:</span>
-              <span>{formatCurrency(invoice.total_igst)}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-bold border-t border-gray-300 pt-1">
-            <span>TOTAL:</span>
-            <span>{formatCurrency(invoice.grand_total)}</span>
           </div>
         </div>
       </div>
 
-      {/* Payment Details */}
-      <div className="border-b border-dashed border-gray-400 pb-3 mb-3 text-xs">
-        <div className="flex justify-between">
-          <span>Payment Mode:</span>
-          <span className="uppercase">{invoice.payment_mode}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Payment Status:</span>
-          <span className="uppercase">{invoice.payment_status}</span>
-        </div>
-        {invoice.amount_paid > 0 && (
-          <div className="flex justify-between">
-            <span>Amount Paid:</span>
-            <span>{formatCurrency(invoice.amount_paid)}</span>
+      {/* GST Details Section (if applicable) */}
+      {(invoice.total_cgst > 0 || invoice.total_sgst > 0 || invoice.total_igst > 0) && (
+        <div className="mt-4 border border-red-600 p-3">
+          <div className="text-xs font-bold text-red-600 mb-2">GST DETAILS:</div>
+          <div className="grid grid-cols-4 gap-4 text-xs">
+            <div>
+              <span className="font-semibold">Taxable Value:</span>
+              <div>{formatCurrency(invoice.total_taxable_value)}</div>
+            </div>
+            {invoice.total_cgst > 0 && (
+              <div>
+                <span className="font-semibold">CGST:</span>
+                <div>{formatCurrency(invoice.total_cgst)}</div>
+              </div>
+            )}
+            {invoice.total_sgst > 0 && (
+              <div>
+                <span className="font-semibold">SGST:</span>
+                <div>{formatCurrency(invoice.total_sgst)}</div>
+              </div>
+            )}
+            {invoice.total_igst > 0 && (
+              <div>
+                <span className="font-semibold">IGST:</span>
+                <div>{formatCurrency(invoice.total_igst)}</div>
+              </div>
+            )}
           </div>
-        )}
-        {invoice.grand_total - invoice.amount_paid > 0 && (
-          <div className="flex justify-between font-bold">
-            <span>Balance Due:</span>
-            <span>{formatCurrency(invoice.grand_total - invoice.amount_paid)}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Terms and Conditions */}
-      {settings.termsAndConditions && (
-        <div className="border-b border-dashed border-gray-400 pb-3 mb-3">
-          <p className="text-xs font-bold mb-1">Terms & Conditions:</p>
-          <p className="text-xs">{settings.termsAndConditions}</p>
         </div>
       )}
-
-      {/* Footer */}
-      <div className="text-center text-xs">
-        <p className="mb-2">Thank you for your business!</p>
-        <p className="text-xs text-gray-600">
-          Generated on {format(new Date(), 'dd/MM/yyyy HH:mm:ss')}
-        </p>
-        
-        {settings.showSignature && (
-          <div className="mt-4">
-            <div className="border-t border-gray-400 w-24 mx-auto"></div>
-            <p className="mt-1 text-xs">Authorized Signature</p>
-          </div>
-        )}
-      </div>
-
-      {/* Print Instructions */}
-      <div className="mt-4 text-center text-xs text-gray-500">
-        <p>*** COMPUTER GENERATED INVOICE ***</p>
-        <p>No signature required</p>
-      </div>
     </div>
   );
 });
+
+// Helper function to convert number to words
+function convertNumberToWords(num: number): string {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  if (num === 0) return 'Zero';
+  
+  function convertHundreds(n: number): string {
+    let result = '';
+    
+    if (n >= 100) {
+      result += ones[Math.floor(n / 100)] + ' Hundred ';
+      n %= 100;
+    }
+    
+    if (n >= 20) {
+      result += tens[Math.floor(n / 10)] + ' ';
+      n %= 10;
+    } else if (n >= 10) {
+      result += teens[n - 10] + ' ';
+      return result;
+    }
+    
+    if (n > 0) {
+      result += ones[n] + ' ';
+    }
+    
+    return result;
+  }
+  
+  let result = '';
+  const crores = Math.floor(num / 10000000);
+  const lakhs = Math.floor((num % 10000000) / 100000);
+  const thousands = Math.floor((num % 100000) / 1000);
+  const hundreds = num % 1000;
+  
+  if (crores > 0) {
+    result += convertHundreds(crores) + 'Crore ';
+  }
+  
+  if (lakhs > 0) {
+    result += convertHundreds(lakhs) + 'Lakh ';
+  }
+  
+  if (thousands > 0) {
+    result += convertHundreds(thousands) + 'Thousand ';
+  }
+  
+  if (hundreds > 0) {
+    result += convertHundreds(hundreds);
+  }
+  
+  return result.trim();
+}
 
 InvoicePrint.displayName = 'InvoicePrint';
 

@@ -45,14 +45,14 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ isOpen, onClose, settings
             label="Store Name"
             value={formData.storeName}
             onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
-            placeholder="M R Medical & General Store"
+            placeholder="Medical & General Store"
           />
           
           <Input
             label="Phone Number"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="+91 98765 43210"
+            placeholder="1300-999-9999"
           />
           
           <Input
@@ -60,21 +60,21 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ isOpen, onClose, settings
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="info@mrmedical.com"
+            placeholder="info@medicalstore.com"
           />
           
           <Input
             label="GSTIN"
             value={formData.gstin}
             onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-            placeholder="27XXXXX1234X1ZX"
+            placeholder="INPUT HERE"
           />
           
           <Input
             label="Drug License Number"
             value={formData.dlNumber}
             onChange={(e) => setFormData({ ...formData, dlNumber: e.target.value })}
-            placeholder="DL-MH-12345"
+            placeholder="136/99/20XX"
           />
           
           <Input
@@ -92,7 +92,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ isOpen, onClose, settings
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             multiline
             rows={3}
-            placeholder="Shop No. 123, Medical Complex, Main Road, City - 400001"
+            placeholder="G - 19, 109-110, Address Here, Address Here, Address Here, City. Phone: 1300-999-9999"
           />
         </div>
 
@@ -103,7 +103,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ isOpen, onClose, settings
             onChange={(e) => setFormData({ ...formData, termsAndConditions: e.target.value })}
             multiline
             rows={4}
-            placeholder="1. Goods once sold will not be taken back. 2. All disputes subject to local jurisdiction."
+            placeholder="All disputes subject to CITY Jurisdiction only. Medicines without Batch No. & Exp. will not be taken back. Please consult Dr. before using the medicines. E. & O.E."
           />
         </div>
 
