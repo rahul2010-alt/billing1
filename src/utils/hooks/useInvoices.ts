@@ -12,7 +12,7 @@ export const useInvoices = () => {
   useEffect(() => {
     fetchInvoices();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with error handling
     const subscription = supabase
       .channel('invoices_changes')
       .on('postgres_changes', 
@@ -22,10 +22,20 @@ export const useInvoices = () => {
           fetchInvoices(); // Refetch data when changes occur
         }
       )
-      .subscribe();
+      .subscribe()
+      .catch(err => {
+        console.error('Realtime subscription error for invoices:', err);
+        // Don't show notification for subscription errors as they're not critical
+      });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        subscription.then(sub => sub?.unsubscribe()).catch(err => {
+          console.error('Error unsubscribing from invoices channel:', err);
+        });
+      } catch (err) {
+        console.error('Error during cleanup of invoices subscription:', err);
+      }
     };
   }, []);
 

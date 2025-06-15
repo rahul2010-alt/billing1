@@ -12,7 +12,7 @@ export const useCustomers = () => {
   useEffect(() => {
     fetchCustomers();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with error handling
     const subscription = supabase
       .channel('customers_changes')
       .on('postgres_changes', 
@@ -22,10 +22,20 @@ export const useCustomers = () => {
           fetchCustomers();
         }
       )
-      .subscribe();
+      .subscribe()
+      .catch(err => {
+        console.error('Realtime subscription error for customers:', err);
+        // Don't show notification for subscription errors as they're not critical
+      });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        subscription.then(sub => sub?.unsubscribe()).catch(err => {
+          console.error('Error unsubscribing from customers channel:', err);
+        });
+      } catch (err) {
+        console.error('Error during cleanup of customers subscription:', err);
+      }
     };
   }, []);
 
@@ -88,7 +98,7 @@ export const useProducts = () => {
   useEffect(() => {
     fetchProducts();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with error handling
     const subscription = supabase
       .channel('products_changes')
       .on('postgres_changes', 
@@ -98,10 +108,20 @@ export const useProducts = () => {
           fetchProducts();
         }
       )
-      .subscribe();
+      .subscribe()
+      .catch(err => {
+        console.error('Realtime subscription error for products:', err);
+        // Don't show notification for subscription errors as they're not critical
+      });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        subscription.then(sub => sub?.unsubscribe()).catch(err => {
+          console.error('Error unsubscribing from products channel:', err);
+        });
+      } catch (err) {
+        console.error('Error during cleanup of products subscription:', err);
+      }
     };
   }, []);
 
@@ -168,7 +188,7 @@ export const usePurchases = () => {
   useEffect(() => {
     fetchPurchases();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with error handling
     const subscription = supabase
       .channel('purchases_changes')
       .on('postgres_changes', 
@@ -178,10 +198,20 @@ export const usePurchases = () => {
           fetchPurchases();
         }
       )
-      .subscribe();
+      .subscribe()
+      .catch(err => {
+        console.error('Realtime subscription error for purchases:', err);
+        // Don't show notification for subscription errors as they're not critical
+      });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        subscription.then(sub => sub?.unsubscribe()).catch(err => {
+          console.error('Error unsubscribing from purchases channel:', err);
+        });
+      } catch (err) {
+        console.error('Error during cleanup of purchases subscription:', err);
+      }
     };
   }, []);
 
@@ -249,7 +279,7 @@ export const useSuppliers = () => {
   useEffect(() => {
     fetchSuppliers();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with error handling
     const subscription = supabase
       .channel('suppliers_changes')
       .on('postgres_changes', 
@@ -259,10 +289,20 @@ export const useSuppliers = () => {
           fetchSuppliers();
         }
       )
-      .subscribe();
+      .subscribe()
+      .catch(err => {
+        console.error('Realtime subscription error for suppliers:', err);
+        // Don't show notification for subscription errors as they're not critical
+      });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        subscription.then(sub => sub?.unsubscribe()).catch(err => {
+          console.error('Error unsubscribing from suppliers channel:', err);
+        });
+      } catch (err) {
+        console.error('Error during cleanup of suppliers subscription:', err);
+      }
     };
   }, []);
 

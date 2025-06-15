@@ -50,6 +50,11 @@ const createMockClient = () => ({
     delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured. Please check your .env file.') }),
     upsert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured. Please check your .env file.') }),
   }),
+  channel: () => ({
+    on: () => ({
+      subscribe: () => Promise.resolve({ unsubscribe: () => {} }).catch(() => ({ unsubscribe: () => {} }))
+    })
+  })
 });
 
 export const supabase = isConfigured 
