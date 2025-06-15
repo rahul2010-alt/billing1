@@ -22,17 +22,17 @@ export const useInvoices = () => {
           fetchInvoices(); // Refetch data when changes occur
         }
       )
-      .subscribe()
-      .catch(err => {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to invoices changes');
+        } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime subscription error for invoices:', err);
         // Don't show notification for subscription errors as they're not critical
       });
 
     return () => {
       try {
-        subscription.then(sub => sub?.unsubscribe()).catch(err => {
-          console.error('Error unsubscribing from invoices channel:', err);
-        });
+        subscription.unsubscribe();
       } catch (err) {
         console.error('Error during cleanup of invoices subscription:', err);
       }

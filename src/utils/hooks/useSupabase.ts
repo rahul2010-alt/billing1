@@ -22,17 +22,17 @@ export const useCustomers = () => {
           fetchCustomers();
         }
       )
-      .subscribe()
-      .catch(err => {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to customers changes');
+        } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime subscription error for customers:', err);
         // Don't show notification for subscription errors as they're not critical
       });
 
     return () => {
       try {
-        subscription.then(sub => sub?.unsubscribe()).catch(err => {
-          console.error('Error unsubscribing from customers channel:', err);
-        });
+        subscription.unsubscribe();
       } catch (err) {
         console.error('Error during cleanup of customers subscription:', err);
       }
@@ -108,17 +108,17 @@ export const useProducts = () => {
           fetchProducts();
         }
       )
-      .subscribe()
-      .catch(err => {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to products changes');
+        } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime subscription error for products:', err);
         // Don't show notification for subscription errors as they're not critical
       });
 
     return () => {
       try {
-        subscription.then(sub => sub?.unsubscribe()).catch(err => {
-          console.error('Error unsubscribing from products channel:', err);
-        });
+        subscription.unsubscribe();
       } catch (err) {
         console.error('Error during cleanup of products subscription:', err);
       }
@@ -198,17 +198,17 @@ export const usePurchases = () => {
           fetchPurchases();
         }
       )
-      .subscribe()
-      .catch(err => {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to purchases changes');
+        } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime subscription error for purchases:', err);
         // Don't show notification for subscription errors as they're not critical
       });
 
     return () => {
       try {
-        subscription.then(sub => sub?.unsubscribe()).catch(err => {
-          console.error('Error unsubscribing from purchases channel:', err);
-        });
+        subscription.unsubscribe();
       } catch (err) {
         console.error('Error during cleanup of purchases subscription:', err);
       }
@@ -289,17 +289,17 @@ export const useSuppliers = () => {
           fetchSuppliers();
         }
       )
-      .subscribe()
-      .catch(err => {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to suppliers changes');
+        } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime subscription error for suppliers:', err);
         // Don't show notification for subscription errors as they're not critical
       });
 
     return () => {
       try {
-        subscription.then(sub => sub?.unsubscribe()).catch(err => {
-          console.error('Error unsubscribing from suppliers channel:', err);
-        });
+        subscription.unsubscribe();
       } catch (err) {
         console.error('Error during cleanup of suppliers subscription:', err);
       }
