@@ -4,7 +4,7 @@ import Card from '../UI/Card';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
 import Table from '../UI/Table';
-import PurchaseEntryForm from './PurchaseEntryForm';
+import SimplePurchaseForm from './SimplePurchaseForm';
 import { usePurchases } from '../../utils/hooks/useSupabase';
 import { format } from 'date-fns';
 
@@ -115,7 +115,7 @@ const PurchasePage: React.FC = () => {
       </div>
 
       {showPurchaseEntry ? (
-        <PurchaseEntryForm onClose={() => setShowPurchaseEntry(false)} />
+        <SimplePurchaseForm onClose={() => setShowPurchaseEntry(false)} />
       ) : (
         <>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
