@@ -63,6 +63,9 @@ const BillingPage: React.FC = () => {
           -webkit-print-color-adjust: exact;
           color-adjust: exact;
         }
+        .print-break {
+          page-break-after: always;
+        }
       }
     `
   });
