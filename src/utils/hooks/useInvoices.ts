@@ -24,18 +24,8 @@ export const useInvoices = () => {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to invoices changes');
-        } else if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription error for invoices:', err);
-        // Don't show notification for subscription errors as they're not critical
-      });
-
-    return () => {
-      try {
-        subscription.unsubscribe();
-      } catch (err) {
-        console.error('Error during cleanup of invoices subscription:', err);
-      }
+      .subscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
