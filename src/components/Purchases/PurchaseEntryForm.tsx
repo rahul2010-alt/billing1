@@ -306,7 +306,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
                       <Input
                         type="number"
                         value={item.quantity}
-                        onChange={(e) => handleItemChange(item.id, { quantity: parseInt(e.target.value) })}
+                        onChange={(e) => handleItemChange(item.id, { quantity: parseInt(e.target.value) || 0 })}
                       />
                     )
                   },
@@ -316,7 +316,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
                       <Input
                         type="number"
                         value={item.scheme}
-                        onChange={(e) => handleItemChange(item.id, { scheme: parseInt(e.target.value) })}
+                        onChange={(e) => handleItemChange(item.id, { scheme: parseInt(e.target.value) || 0 })}
                       />
                     )
                   },
@@ -336,7 +336,7 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
                       <Input
                         type="number"
                         value={item.mrp}
-                        onChange={(e) => handleItemChange(item.id, { mrp: parseFloat(e.target.value) })}
+                        onChange={(e) => handleItemChange(item.id, { mrp: parseFloat(e.target.value) || 0 })}
                       />
                     )
                   },
