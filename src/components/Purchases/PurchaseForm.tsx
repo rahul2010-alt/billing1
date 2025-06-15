@@ -109,14 +109,32 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({ onCancel }) => {
     const totals = calculateTotals();
     
     try {
-      await createPurchase({
+      // Map camelCase to snake_case for purchase data
+      const purchaseData = {
         date: formData.date.toISOString().split('T')[0],
         supplierId: formData.supplierId,
         paymentStatus: formData.paymentStatus,
         amountPaid: formData.amountPaid,
         notes: formData.notes,
         ...totals
-      }, items);
+      };
+
+      // Map items to the correct format
+      const purchaseItems = items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        taxableValue: item.taxableValue,
+        gstRate: item.gstRate,
+        cgst: item.cgst,
+        sgst: item.sgst,
+        igst: item.igst,
+        total: item.total
+      }));
+
+      await createPurchase({
+        ...purchaseData
+      }, purchaseItems);
       
       addNotification('Purchase created successfully!');
       onCancel();

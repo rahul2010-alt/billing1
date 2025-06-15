@@ -97,27 +97,38 @@ const PurchaseEntryForm: React.FC<PurchaseEntryFormProps> = ({ onClose }) => {
         (acc, item) => ({
           subtotal: acc.subtotal + item.amount,
           totalTaxableValue: acc.totalTaxableValue + (item.amount / (1 + item.tax / 100)),
-          totalTax: acc.totalTax + (item.amount * item.tax / (100 + item.tax))
+          totalCgst: acc.totalCgst + (item.amount * item.tax / (200 + item.tax)), // Half of GST for CGST
+          totalSgst: acc.totalSgst + (item.amount * item.tax / (200 + item.tax)), // Half of GST for SGST
+          totalIgst: acc.totalIgst + 0, // Assuming intra-state for now
+          grandTotal: acc.grandTotal + item.amount
         }),
-        { subtotal: 0, totalTaxableValue: 0, totalTax: 0 }
+        { subtotal: 0, totalTaxableValue: 0, totalCgst: 0, totalSgst: 0, totalIgst: 0, grandTotal: 0 }
       );
 
-      await createPurchase({
+      const purchaseData = {
         date: formData.date.toISOString().split('T')[0],
         supplierId: formData.supplier,
-        invoiceNumber: formData.invoiceNo,
-        paymentStatus: 'unpaid',
+        paymentStatus: 'unpaid' as const,
         amountPaid: 0,
-        ...totals,
-        grandTotal: totals.subtotal
-      }, items.map(item => ({
+        notes: formData.salesManager ? `Sales Manager: ${formData.salesManager}` : '',
+        ...totals
+      };
+
+      const purchaseItems = items.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
         price: item.rate,
         taxableValue: item.amount / (1 + item.tax / 100),
         gstRate: item.tax,
+        cgst: item.amount * item.tax / (200 + item.tax),
+        sgst: item.amount * item.tax / (200 + item.tax),
+        igst: 0,
         total: item.amount
-      })));
+      }));
+
+      await createPurchase({
+        ...purchaseData
+      }, purchaseItems);
 
       onClose();
     } catch (error) {

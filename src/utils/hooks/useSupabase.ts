@@ -233,27 +233,59 @@ export const usePurchases = () => {
 
   const createPurchase = async (
     purchase: Omit<Purchase, 'id' | 'purchaseNumber' | 'createdAt' | 'updatedAt'>,
-    items: Omit<PurchaseItem, 'id' | 'purchaseId' | 'createdAt'>[]
+    items: Array<{
+      productId: string;
+      quantity: number;
+      price: number;
+      taxableValue: number;
+      gstRate: number;
+      cgst: number;
+      sgst: number;
+      igst: number;
+      total: number;
+    }>
   ) => {
     try {
-      // Start a transaction
+      // Map camelCase to snake_case for purchase
+      const purchaseData = {
+        date: purchase.date,
+        supplier_id: purchase.supplierId,
+        payment_status: purchase.paymentStatus,
+        amount_paid: purchase.amountPaid,
+        subtotal: purchase.subtotal,
+        total_taxable_value: purchase.totalTaxableValue,
+        total_cgst: purchase.totalCgst,
+        total_sgst: purchase.totalSgst,
+        total_igst: purchase.totalIgst,
+        grand_total: purchase.grandTotal,
+        notes: purchase.notes
+      };
+
       const { data: newPurchase, error: purchaseError } = await supabase
         .from('purchases')
-        .insert([purchase])
+        .insert([purchaseData])
         .select()
         .single();
 
       if (purchaseError) throw purchaseError;
 
-      // Insert purchase items
+      // Map camelCase to snake_case for purchase items
+      const itemsData = items.map(item => ({
+        purchase_id: newPurchase.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        taxable_value: item.taxableValue,
+        gst_rate: item.gstRate,
+        cgst: item.cgst,
+        sgst: item.sgst,
+        igst: item.igst,
+        total: item.total
+      }));
+
       const { error: itemsError } = await supabase
         .from('purchase_items')
-        .insert(
-          items.map(item => ({
-            ...item,
-            purchase_id: newPurchase.id
-          }))
-        );
+        .insert(itemsData);
 
       if (itemsError) throw itemsError;
 
