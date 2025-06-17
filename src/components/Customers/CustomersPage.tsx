@@ -32,10 +32,12 @@ const CustomersPage: React.FC = () => {
 
       {showAddCustomer ? (
         <Card title="Add New Customer" icon={<Users className="h-5 w-5" />}>
-          <CustomerForm
-            onSubmit={() => setShowAddCustomer(false)}
-            onCancel={() => setShowAddCustomer(false)}
-          />
+          <div className="p-6">
+            <CustomerForm
+              onSubmit={() => setShowAddCustomer(false)}
+              onCancel={() => setShowAddCustomer(false)}
+            />
+          </div>
         </Card>
       ) : (
         <>

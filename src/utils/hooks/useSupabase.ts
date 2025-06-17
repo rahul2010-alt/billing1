@@ -57,7 +57,9 @@ export const useCustomers = () => {
 
   const addCustomer = async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Map stateCode to state_code for database insertion
+      console.log('Adding customer with data:', customer);
+      
+      // Map camelCase to snake_case for database insertion
       const customerData = {
         name: customer.name,
         phone: customer.phone,
@@ -66,8 +68,10 @@ export const useCustomers = () => {
         gstin: customer.gstin,
         type: customer.type,
         state: customer.state,
-        state_code: customer.stateCode // Map stateCode to state_code
+        state_code: customer.stateCode
       };
+      
+      console.log('Inserting customer data:', customerData);
       
       const { data, error } = await supabase
         .from('customers')
@@ -76,10 +80,13 @@ export const useCustomers = () => {
         .single();
 
       if (error) throw error;
+      
+      console.log('Customer added successfully:', data);
       await fetchCustomers();
       addNotification('Customer added successfully!');
       return data;
     } catch (err) {
+      console.error('Error in addCustomer:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       addNotification('Error adding customer: ' + (err instanceof Error ? err.message : 'Unknown error'));
       throw err;
