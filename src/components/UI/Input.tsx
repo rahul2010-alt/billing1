@@ -15,8 +15,13 @@ const Input: React.FC<InputProps> = ({
   multiline = false,
   rows = 3,
   className = '',
+  value,
+  onChange,
   ...props
 }) => {
+  // Ensure value is always a string for controlled components
+  const safeValue = value == null ? '' : String(value);
+
   return (
     <div className="space-y-1">
       {label && (
@@ -33,6 +38,8 @@ const Input: React.FC<InputProps> = ({
         {multiline ? (
           <textarea
             rows={rows}
+            value={safeValue}
+            onChange={onChange}
             className={`
               block w-full rounded-lg border-gray-300 shadow-sm
               focus:ring-2 focus:ring-teal-500 focus:border-teal-500
@@ -44,6 +51,8 @@ const Input: React.FC<InputProps> = ({
           />
         ) : (
           <input
+            value={safeValue}
+            onChange={onChange}
             className={`
               block w-full rounded-lg border-gray-300 shadow-sm
               focus:ring-2 focus:ring-teal-500 focus:border-teal-500
