@@ -1,38 +1,62 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 
-export interface DashboardStats {
-  totalSales: number;
-  totalInvoices: number;
-  lowStockItems: number;
-  totalCustomers: number;
-  monthlyRevenue: number;
-  recentSales: Array<{
-    id: string;
-    bill_number: string;
-    total_amount: number;
-    created_at: string;
-    customer?: {
-      name: string;
+export interface DashboardData {
+  stats: {
+    sales: {
+      current: number;
+      previous: number;
     };
+    purchases: {
+      current: number;
+      previous: number;
+    };
+    profit: {
+      current: number;
+      previous: number;
+    };
+    invoices: {
+      current: number;
+      previous: number;
+    };
+  };
+  salesTrend: Array<{
+    date: string;
+    sales: number;
+    purchases: number;
   }>;
-  topProducts: Array<{
+  categoryData: Array<{
+    name: string;
+    value: number;
+  }>;
+  lowStock: Array<{
     id: string;
     name: string;
-    totalSold: number;
-    revenue: number;
+    stock: number;
+    reorderLevel: number;
+    category: string;
+  }>;
+  expiringItems: Array<{
+    id: string;
+    name: string;
+    expiryDate: string;
+    batchNumber: string;
+    category: string;
   }>;
 }
 
-export const useDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalSales: 0,
-    totalInvoices: 0,
-    lowStockItems: 0,
-    totalCustomers: 0,
-    monthlyRevenue: 0,
-    recentSales: [],
-    topProducts: []
+export const useDashboard = (currentBusinessMonth: string) => {
+  const [data, setData] = useState<DashboardData>({
+    stats: {
+      sales: { current: 0, previous: 0 },
+      purchases: { current: 0, previous: 0 },
+      profit: { current: 0, previous: 0 },
+      invoices: { current: 0, previous: 0 }
+    },
+    salesTrend: [],
+    categoryData: [],
+    lowStock: [],
+    expiringItems: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,108 +65,136 @@ export const useDashboard = () => {
     try {
       setLoading(true);
       
-      // Get current month boundaries
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      // Parse current business month
+      const [year, month] = currentBusinessMonth.split('-');
+      const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const startOfCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       
-      // Fetch total sales (monthly revenue)
-      const { data: salesData, error: salesError } = await supabase
+      // Previous month boundaries
+      const startOfPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const endOfPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+      
+      // Fetch current month sales
+      const { data: currentSalesData, error: currentSalesError } = await supabase
         .from('bills')
         .select('total_amount, created_at')
-        .gte('created_at', startOfMonth.toISOString())
-        .lte('created_at', endOfMonth.toISOString());
+        .gte('created_at', startOfCurrentMonth.toISOString())
+        .lte('created_at', endOfCurrentMonth.toISOString());
 
-      if (salesError) throw salesError;
+      if (currentSalesError) throw currentSalesError;
 
-      const monthlyRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
-
-      // Fetch total invoices count
-      const { count: totalInvoices, error: invoicesError } = await supabase
+      // Fetch previous month sales
+      const { data: previousSalesData, error: previousSalesError } = await supabase
         .from('bills')
-        .select('*', { count: 'exact', head: true });
+        .select('total_amount, created_at')
+        .gte('created_at', startOfPreviousMonth.toISOString())
+        .lte('created_at', endOfPreviousMonth.toISOString());
 
-      if (invoicesError) throw invoicesError;
+      if (previousSalesError) throw previousSalesError;
 
-      // Fetch all products to check low stock items (filter in JavaScript)
-      const { data: allProducts, error: productsError } = await supabase
+      const currentSales = currentSalesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
+      const previousSales = previousSalesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
+
+      // Fetch invoice counts
+      const { count: currentInvoices, error: currentInvoicesError } = await supabase
+        .from('bills')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfCurrentMonth.toISOString())
+        .lte('created_at', endOfCurrentMonth.toISOString());
+
+      if (currentInvoicesError) throw currentInvoicesError;
+
+      const { count: previousInvoices, error: previousInvoicesError } = await supabase
+        .from('bills')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfPreviousMonth.toISOString())
+        .lte('created_at', endOfPreviousMonth.toISOString());
+
+      if (previousInvoicesError) throw previousInvoicesError;
+
+      // Fetch low stock items
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('stock_quantity, min_stock_level');
+        .select('id, name, stock_quantity, min_stock_level, category')
+        .lt('stock_quantity', 'min_stock_level');
 
       if (productsError) throw productsError;
 
-      // Filter low stock items in JavaScript
-      const lowStockItems = allProducts?.filter(product => 
-        (product.stock_quantity || 0) < (product.min_stock_level || 0)
-      ) || [];
+      const lowStock = productsData?.map(product => ({
+        id: product.id,
+        name: product.name,
+        stock: product.stock_quantity || 0,
+        reorderLevel: product.min_stock_level || 0,
+        category: product.category || 'medicine'
+      })) || [];
 
-      // Fetch total customers
-      const { count: totalCustomers, error: customersError } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true });
+      // Fetch expiring items (within 30 days)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-      if (customersError) throw customersError;
+      const { data: expiringData, error: expiringError } = await supabase
+        .from('products')
+        .select('id, name, expiry_date, batch_number, category')
+        .lte('expiry_date', thirtyDaysFromNow.toISOString().split('T')[0])
+        .gt('expiry_date', new Date().toISOString().split('T')[0])
+        .limit(10);
 
-      // Fetch recent sales
-      const { data: recentSales, error: recentSalesError } = await supabase
-        .from('bills')
-        .select(`
-          id,
-          bill_number,
-          total_amount,
-          created_at,
-          customer:customers(name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      if (expiringError) throw expiringError;
 
-      if (recentSalesError) throw recentSalesError;
+      const expiringItems = expiringData?.map(product => ({
+        id: product.id,
+        name: product.name,
+        expiryDate: product.expiry_date,
+        batchNumber: product.batch_number || 'N/A',
+        category: product.category || 'medicine'
+      })) || [];
 
-      // Fetch top products (most sold this month)
-      const { data: topProductsData, error: topProductsError } = await supabase
-        .from('bill_items')
-        .select(`
-          product_id,
-          quantity,
-          total_amount,
-          bill:bills!inner(created_at),
-          product:products(id, name)
-        `)
-        .gte('bill.created_at', startOfMonth.toISOString())
-        .lte('bill.created_at', endOfMonth.toISOString());
-
-      if (topProductsError) throw topProductsError;
-
-      // Aggregate top products
-      const productMap = new Map();
-      topProductsData?.forEach(item => {
-        const productId = item.product_id;
-        if (productMap.has(productId)) {
-          const existing = productMap.get(productId);
-          existing.totalSold += item.quantity;
-          existing.revenue += Number(item.total_amount);
-        } else {
-          productMap.set(productId, {
-            id: productId,
-            name: item.product?.name || 'Unknown',
-            totalSold: item.quantity,
-            revenue: Number(item.total_amount)
+      // Generate sales trend data (dummy data for now)
+      const salesTrend = [];
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(startOfCurrentMonth);
+        date.setDate(date.getDate() + i);
+        if (date <= endOfCurrentMonth) {
+          salesTrend.push({
+            date: date.getDate().toString(),
+            sales: Math.floor(Math.random() * 10000) + 5000,
+            purchases: Math.floor(Math.random() * 8000) + 3000
           });
         }
-      });
+      }
 
-      const topProducts = Array.from(productMap.values())
-        .sort((a, b) => b.totalSold - a.totalSold)
-        .slice(0, 5);
+      // Generate category data (dummy data for now)
+      const categoryData = [
+        { name: 'Medicine', value: Math.floor(currentSales * 0.4) },
+        { name: 'Supplements', value: Math.floor(currentSales * 0.3) },
+        { name: 'Medical Devices', value: Math.floor(currentSales * 0.2) },
+        { name: 'Others', value: Math.floor(currentSales * 0.1) }
+      ];
 
-      setStats({
-        totalSales: monthlyRevenue,
-        totalInvoices: totalInvoices || 0,
-        lowStockItems: lowStockItems.length,
-        totalCustomers: totalCustomers || 0,
-        monthlyRevenue,
-        recentSales: recentSales || [],
-        topProducts
+      setData({
+        stats: {
+          sales: {
+            current: currentSales,
+            previous: previousSales
+          },
+          purchases: {
+            current: Math.floor(currentSales * 0.7), // Dummy calculation
+            previous: Math.floor(previousSales * 0.7)
+          },
+          profit: {
+            current: Math.floor(currentSales * 0.3), // Dummy calculation
+            previous: Math.floor(previousSales * 0.3)
+          },
+          invoices: {
+            current: currentInvoices || 0,
+            previous: previousInvoices || 0
+          }
+        },
+        salesTrend,
+        categoryData,
+        lowStock,
+        expiringItems
       });
 
     } catch (err) {
@@ -154,10 +206,10 @@ export const useDashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, []);
+  }, [currentBusinessMonth]);
 
   return {
-    stats,
+    data,
     loading,
     error,
     refetch: fetchDashboardStats
