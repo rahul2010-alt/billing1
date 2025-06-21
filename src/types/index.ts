@@ -21,10 +21,10 @@ export interface Product {
 export interface Customer {
   id: string;
   name: string;
-  phone: string;
-  email: string;
-  address: string;
-  gstin?: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  gstin: string | null;
   type: 'B2B' | 'B2C' | 'B2CL';
   state: string;
   stateCode: string;

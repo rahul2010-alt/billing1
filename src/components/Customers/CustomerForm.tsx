@@ -63,7 +63,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
         throw new Error('GSTIN is required for B2B customers');
       }
 
-      // Prepare data for submission
+      // Prepare data for submission - convert empty strings to null
       const customerData = {
         name: formData.name.trim(),
         phone: formData.phone.trim() || null,
@@ -111,7 +111,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
             label="Customer Name *"
-            value={String(formData.name)}
+            value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
             placeholder="Enter customer name"
@@ -120,7 +120,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
           <Input
             type="tel"
             label="Phone"
-            value={String(formData.phone)}
+            value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             placeholder="Enter phone number"
           />
@@ -128,7 +128,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
           <Input
             type="email"
             label="Email"
-            value={String(formData.email)}
+            value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="Enter email address"
           />
@@ -139,7 +139,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
             </label>
             <select
               className="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              value={String(formData.type)}
+              value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               required
             >
@@ -152,7 +152,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
           {(formData.type === 'B2B' || formData.type === 'B2CL') && (
             <Input
               label={`GSTIN ${formData.type === 'B2B' ? '*' : ''}`}
-              value={String(formData.gstin)}
+              value={formData.gstin}
               onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
               required={formData.type === 'B2B'}
               placeholder="Enter GSTIN"
@@ -165,7 +165,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
             </label>
             <select
               className="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              value={String(formData.state)}
+              value={formData.state}
               onChange={handleStateChange}
               required
             >
@@ -180,7 +180,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ onSubmit, onCancel, initial
           <div className="md:col-span-2">
             <Input
               label="Address"
-              value={String(formData.address)}
+              value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               multiline
               rows={3}
