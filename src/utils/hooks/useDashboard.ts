@@ -113,15 +113,17 @@ export const useDashboard = (currentBusinessMonth: string) => {
 
       if (previousInvoicesError) throw previousInvoicesError;
 
-      // Fetch low stock items
+      // Fetch products for low stock analysis
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('id, name, stock_quantity, min_stock_level, category')
-        .lt('stock_quantity', 'min_stock_level');
+        .select('id, name, stock_quantity, min_stock_level, category');
 
       if (productsError) throw productsError;
 
-      const lowStock = productsData?.map(product => ({
+      // Filter low stock items on client side
+      const lowStock = productsData?.filter(product => 
+        (product.stock_quantity || 0) < (product.min_stock_level || 0)
+      ).map(product => ({
         id: product.id,
         name: product.name,
         stock: product.stock_quantity || 0,
