@@ -88,18 +88,18 @@ export const checkSupabaseConnection = async () => {
       return false;
     }
 
-    // Simple health check query with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    // Simple health check query with Promise.race timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000);
+    });
+
+    const queryPromise = supabase
+      .from('products')
+      .select('count')
+      .limit(1);
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .select('count')
-        .limit(1)
-        .abortSignal(controller.signal);
-      
-      clearTimeout(timeoutId);
+      const { error } = await Promise.race([queryPromise, timeoutPromise]);
       
       if (error) {
         console.error('❌ Supabase Connection Error:', error.message);
@@ -125,13 +125,12 @@ export const checkSupabaseConnection = async () => {
       
       console.log('✅ Supabase connection successful');
       return true;
-    } catch (abortError) {
-      clearTimeout(timeoutId);
-      if (abortError.name === 'AbortError') {
+    } catch (timeoutError) {
+      if (timeoutError.message.includes('timeout')) {
         console.error('❌ Supabase connection timeout (10s)');
         console.error('This might indicate network issues or an incorrect URL');
       } else {
-        throw abortError;
+        throw timeoutError;
       }
       return false;
     }
