@@ -64,13 +64,17 @@ export const useDashboard = () => {
 
       if (invoicesError) throw invoicesError;
 
-      // Fetch low stock items
-      const { data: lowStockData, error: lowStockError } = await supabase
+      // Fetch all products to check low stock items (filter in JavaScript)
+      const { data: allProducts, error: productsError } = await supabase
         .from('products')
-        .select('*')
-        .lt('stock_quantity', 'min_stock_level');
+        .select('stock_quantity, min_stock_level');
 
-      if (lowStockError) throw lowStockError;
+      if (productsError) throw productsError;
+
+      // Filter low stock items in JavaScript
+      const lowStockItems = allProducts?.filter(product => 
+        (product.stock_quantity || 0) < (product.min_stock_level || 0)
+      ) || [];
 
       // Fetch total customers
       const { count: totalCustomers, error: customersError } = await supabase
@@ -134,7 +138,7 @@ export const useDashboard = () => {
       setStats({
         totalSales: monthlyRevenue,
         totalInvoices: totalInvoices || 0,
-        lowStockItems: lowStockData?.length || 0,
+        lowStockItems: lowStockItems.length,
         totalCustomers: totalCustomers || 0,
         monthlyRevenue,
         recentSales: recentSales || [],
