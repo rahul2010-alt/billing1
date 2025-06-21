@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, ShoppingBag, DollarSign, Activity, Calendar, 
   AlertTriangle, Package, ArrowRight, Pill, Stethoscope, Thermometer
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend
@@ -22,6 +22,15 @@ const Dashboard: React.FC = () => {
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                     'July', 'August', 'September', 'October', 'November', 'December'];
   const monthName = monthNames[parseInt(month) - 1];
+
+  const formatExpiryDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    if (!isValid(date)) return 'N/A';
+    
+    return format(date, 'dd MMM yyyy');
+  };
 
   const StatCard = ({ title, value, previousValue, icon, prefix = '₹' }) => {
     const percentChange = ((value - previousValue) / previousValue) * 100;
@@ -225,7 +234,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                      Expires: {format(new Date(item.expiryDate), 'dd MMM yyyy')}
+                      Expires: {formatExpiryDate(item.expiryDate)}
                     </span>
                   </div>
                 ))}
