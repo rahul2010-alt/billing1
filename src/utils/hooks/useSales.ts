@@ -1,117 +1,155 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';  
 import { supabase } from '../supabase';
-import { Invoice } from '../../types';
-import { format } from 'date-fns';
+
+export interface SalesData {
+  id: string;
+  bill_number: string;
+  customer_id?: string;
+  total_amount: number;
+  payment_method: string;
+  payment_status: string;
+  created_at: string;
+  customer?: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+  };
+}
+
+export interface SalesStats {
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  salesByPaymentMethod: Record<string, number>;
+  dailySales: Array<{
+    date: string;
+    amount: number;
+    orders: number;
+  }>;
+}
 
 export const useSales = () => {
-  const [sales, setSales] = useState<Invoice[]>([]);
+  const [sales, setSales] = useState<SalesData[]>([]);
+  const [stats, setStats] = useState<SalesStats>({
+    totalSales: 0,
+    totalOrders: 0,
+    averageOrderValue: 0,
+    salesByPaymentMethod: {},
+    dailySales: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalSales: 0,
-    totalReceived: 0,
-    totalPending: 0,
-    gstBreakup: {
-      cgst: 0,
-      sgst: 0,
-      igst: 0
-    }
-  });
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = async (startDate?: string, endDate?: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('invoices')
+      
+      let query = supabase
+        .from('bills')
         .select(`
-          *,
-          customer:customers(name, gstin, state_code),
-          items:invoice_items(
-            quantity,
-            price,
-            discount,
-            taxable_value,
-            cgst,
-            sgst,
-            igst,
-            total,
-            product:products(name, hsn_code, batch_number)
-          )
+          id,
+          bill_number,
+          customer_id,
+          total_amount,
+          payment_method,
+          payment_status,
+          created_at,
+          customer:customers(id, name, phone, email)
         `)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
+
+      if (startDate) {
+        query = query.gte('created_at', startDate);
+      }
+      if (endDate) {
+        query = query.lte('created_at', endDate);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
-      const salesData = data || [];
-      setSales(salesData);
-
-      // Calculate statistics
-      const totals = salesData.reduce((acc, sale) => ({
-        totalSales: acc.totalSales + sale.grand_total,
-        totalReceived: acc.totalReceived + sale.amount_paid,
-        gstBreakup: {
-          cgst: acc.gstBreakup.cgst + sale.total_cgst,
-          sgst: acc.gstBreakup.sgst + sale.total_sgst,
-          igst: acc.gstBreakup.igst + sale.total_igst
-        }
-      }), {
-        totalSales: 0,
-        totalReceived: 0,
-        gstBreakup: { cgst: 0, sgst: 0, igst: 0 }
-      });
-
-      setStats({
-        ...totals,
-        totalPending: totals.totalSales - totals.totalReceived
-      });
-
+      setSales(data || []);
+      calculateStats(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Failed to fetch sales data');
     } finally {
       setLoading(false);
     }
   };
 
-  const getSalesByDateRange = async (startDate: Date, endDate: Date) => {
+  const calculateStats = (salesData: SalesData[]) => {
+    const totalSales = salesData.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+    const totalOrders = salesData.length;
+    const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    // Sales by payment method
+    const salesByPaymentMethod: Record<string, number> = {};
+    salesData.forEach(sale => {
+      const method = sale.payment_method || 'cash';
+      salesByPaymentMethod[method] = (salesByPaymentMethod[method] || 0) + Number(sale.total_amount);
+    });
+
+    // Daily sales
+    const dailySalesMap = new Map<string, { amount: number; orders: number }>();
+    salesData.forEach(sale => {
+      const date = new Date(sale.created_at).toISOString().split('T')[0];
+      const existing = dailySalesMap.get(date) || { amount: 0, orders: 0 };
+      existing.amount += Number(sale.total_amount);
+      existing.orders += 1;
+      dailySalesMap.set(date, existing);
+    });
+
+    const dailySales = Array.from(dailySalesMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    setStats({
+      totalSales,
+      totalOrders,
+      averageOrderValue,
+      salesByPaymentMethod,
+      dailySales
+    });
+  };
+
+  const getSalesByDateRange = async (startDate: string, endDate: string) => {
     try {
       const { data, error } = await supabase
-        .from('invoices')
+        .from('bills')
         .select(`
-          *,
-          customer:customers(name, gstin, state_code),
-          items:invoice_items(
-            quantity,
-            price,
-            discount,
-            taxable_value,
-            cgst,
-            sgst,
-            igst,
-            total,
-            product:products(name, hsn_code, batch_number)
-          )
+          id,
+          bill_number,
+          customer_id,
+          total_amount,
+          payment_method,
+          payment_status,
+          created_at,
+          customer:customers(id, name, phone, email)
         `)
-        .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lte('date', format(endDate, 'yyyy-MM-dd'))
-        .order('date', { ascending: false });
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     } catch (err) {
-      throw err;
+      throw new Error(err instanceof Error ? err.message : 'Failed to fetch sales by date range');
     }
   };
 
+  useEffect(() => {
+    fetchSales();
+  }, []);
+
   return {
     sales,
+    stats,
     loading,
     error,
-    stats,
     fetchSales,
-    getSalesByDateRange
+    getSalesByDateRange,
+    refetch: fetchSales
   };
 };

@@ -1,176 +1,161 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 
-export const useDashboard = (month: string) => {
+export interface DashboardStats {
+  totalSales: number;
+  totalInvoices: number;
+  lowStockItems: number;
+  totalCustomers: number;
+  monthlyRevenue: number;
+  recentSales: Array<{
+    id: string;
+    bill_number: string;
+    total_amount: number;
+    created_at: string;
+    customer?: {
+      name: string;
+    };
+  }>;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    totalSold: number;
+    revenue: number;
+  }>;
+}
+
+export const useDashboard = () => {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalSales: 0,
+    totalInvoices: 0,
+    lowStockItems: 0,
+    totalCustomers: 0,
+    monthlyRevenue: 0,
+    recentSales: [],
+    topProducts: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState({
-    stats: {
-      sales: { current: 0, previous: 0 },
-      purchases: { current: 0, previous: 0 },
-      profit: { current: 0, previous: 0 },
-      invoices: { current: 0, previous: 0 }
-    },
-    salesTrend: [],
-    categoryData: [],
-    lowStock: [],
-    expiringItems: []
-  });
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [month]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      setError(null);
+      
+      // Get current month boundaries
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      
+      // Fetch total sales (monthly revenue)
+      const { data: salesData, error: salesError } = await supabase
+        .from('bills')
+        .select('total_amount, created_at')
+        .gte('created_at', startOfMonth.toISOString())
+        .lte('created_at', endOfMonth.toISOString());
 
-      const [year, monthNum] = month.split('-');
-      const currentStart = startOfMonth(new Date(parseInt(year), parseInt(monthNum) - 1));
-      const currentEnd = endOfMonth(new Date(parseInt(year), parseInt(monthNum) - 1));
-      const previousStart = startOfMonth(new Date(parseInt(year), parseInt(monthNum) - 2));
-      const previousEnd = endOfMonth(new Date(parseInt(year), parseInt(monthNum) - 2));
+      if (salesError) throw salesError;
 
-      // Fetch current month stats
-      const { data: currentInvoices, error: invoicesError } = await supabase
-        .from('invoices')
-        .select('grand_total, created_at')
-        .gte('date', currentStart.toISOString().split('T')[0])
-        .lte('date', currentEnd.toISOString().split('T')[0]);
+      const monthlyRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
+
+      // Fetch total invoices count
+      const { count: totalInvoices, error: invoicesError } = await supabase
+        .from('bills')
+        .select('*', { count: 'exact', head: true });
 
       if (invoicesError) throw invoicesError;
 
-      const { data: currentPurchases, error: purchasesError } = await supabase
-        .from('purchases')
-        .select('grand_total, created_at')
-        .gte('date', currentStart.toISOString().split('T')[0])
-        .lte('date', currentEnd.toISOString().split('T')[0]);
-
-      if (purchasesError) throw purchasesError;
-
-      // Fetch previous month stats
-      const { data: previousInvoices, error: prevInvoicesError } = await supabase
-        .from('invoices')
-        .select('grand_total, created_at')
-        .gte('date', previousStart.toISOString().split('T')[0])
-        .lte('date', previousEnd.toISOString().split('T')[0]);
-
-      if (prevInvoicesError) throw prevInvoicesError;
-
-      const { data: previousPurchases, error: prevPurchasesError } = await supabase
-        .from('purchases')
-        .select('grand_total, created_at')
-        .gte('date', previousStart.toISOString().split('T')[0])
-        .lte('date', previousEnd.toISOString().split('T')[0]);
-
-      if (prevPurchasesError) throw prevPurchasesError;
-
-      // Fetch low stock items - Using raw SQL query to compare columns
-      const { data: lowStockItems, error: lowStockError } = await supabase
-        .rpc('get_low_stock_items')
-        .limit(5);
+      // Fetch low stock items
+      const { data: lowStockData, error: lowStockError } = await supabase
+        .from('products')
+        .select('*')
+        .lt('stock_quantity', 'min_stock_level');
 
       if (lowStockError) throw lowStockError;
 
-      // Fetch expiring items
-      const threeMonthsFromNow = new Date();
-      threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+      // Fetch total customers
+      const { count: totalCustomers, error: customersError } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true });
 
-      const { data: expiringItems, error: expiringError } = await supabase
-        .from('products')
-        .select('*')
-        .lt('expiry_date', threeMonthsFromNow.toISOString().split('T')[0])
-        .gt('expiry_date', new Date().toISOString().split('T')[0])
-        .order('expiry_date', { ascending: true })
+      if (customersError) throw customersError;
+
+      // Fetch recent sales
+      const { data: recentSales, error: recentSalesError } = await supabase
+        .from('bills')
+        .select(`
+          id,
+          bill_number,
+          total_amount,
+          created_at,
+          customer:customers(name)
+        `)
+        .order('created_at', { ascending: false })
         .limit(5);
 
-      if (expiringError) throw expiringError;
+      if (recentSalesError) throw recentSalesError;
 
-      // Calculate sales trend for the last 7 days
-      const salesTrend = await Promise.all(
-        Array.from({ length: 7 }, async (_, i) => {
-          const date = subDays(new Date(), 6 - i);
-          const formattedDate = format(date, 'yyyy-MM-dd');
-          
-          const { data: dayInvoices } = await supabase
-            .from('invoices')
-            .select('grand_total')
-            .eq('date', formattedDate);
-
-          const { data: dayPurchases } = await supabase
-            .from('purchases')
-            .select('grand_total')
-            .eq('date', formattedDate);
-
-          return {
-            date: format(date, 'MMM dd'),
-            sales: dayInvoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
-            purchases: dayPurchases?.reduce((sum, pur) => sum + (pur.grand_total || 0), 0) || 0
-          };
-        })
-      );
-
-      // Calculate category-wise sales
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('invoice_items')
+      // Fetch top products (most sold this month)
+      const { data: topProductsData, error: topProductsError } = await supabase
+        .from('bill_items')
         .select(`
+          product_id,
           quantity,
-          total,
-          products (
-            category
-          )
+          total_amount,
+          bill:bills!inner(created_at),
+          product:products(id, name)
         `)
-        .gte('created_at', currentStart.toISOString())
-        .lte('created_at', currentEnd.toISOString());
+        .gte('bill.created_at', startOfMonth.toISOString())
+        .lte('bill.created_at', endOfMonth.toISOString());
 
-      if (categoryError) throw categoryError;
+      if (topProductsError) throw topProductsError;
 
-      const categorySales = categoryData?.reduce((acc, item) => {
-        const category = item.products?.category || 'Uncategorized';
-        if (!acc[category]) acc[category] = 0;
-        acc[category] += item.total || 0;
-        return acc;
-      }, {});
-
-      const categoryChartData = Object.entries(categorySales || {}).map(([name, value]) => ({
-        name,
-        value: Number(value)
-      })).sort((a, b) => b.value - a.value);
-
-      setData({
-        stats: {
-          sales: {
-            current: currentInvoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0,
-            previous: previousInvoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0
-          },
-          purchases: {
-            current: currentPurchases?.reduce((sum, pur) => sum + (pur.grand_total || 0), 0) || 0,
-            previous: previousPurchases?.reduce((sum, pur) => sum + (pur.grand_total || 0), 0) || 0
-          },
-          profit: {
-            current: (currentInvoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0) -
-                    (currentPurchases?.reduce((sum, pur) => sum + (pur.grand_total || 0), 0) || 0),
-            previous: (previousInvoices?.reduce((sum, inv) => sum + (inv.grand_total || 0), 0) || 0) -
-                     (previousPurchases?.reduce((sum, pur) => sum + (pur.grand_total || 0), 0) || 0)
-          },
-          invoices: {
-            current: currentInvoices?.length || 0,
-            previous: previousInvoices?.length || 0
-          }
-        },
-        salesTrend,
-        categoryData: categoryChartData,
-        lowStock: lowStockItems || [],
-        expiringItems: expiringItems || []
+      // Aggregate top products
+      const productMap = new Map();
+      topProductsData?.forEach(item => {
+        const productId = item.product_id;
+        if (productMap.has(productId)) {
+          const existing = productMap.get(productId);
+          existing.totalSold += item.quantity;
+          existing.revenue += Number(item.total_amount);
+        } else {
+          productMap.set(productId, {
+            id: productId,
+            name: item.product?.name || 'Unknown',
+            totalSold: item.quantity,
+            revenue: Number(item.total_amount)
+          });
+        }
       });
+
+      const topProducts = Array.from(productMap.values())
+        .sort((a, b) => b.totalSold - a.totalSold)
+        .slice(0, 5);
+
+      setStats({
+        totalSales: monthlyRevenue,
+        totalInvoices: totalInvoices || 0,
+        lowStockItems: lowStockData?.length || 0,
+        totalCustomers: totalCustomers || 0,
+        monthlyRevenue,
+        recentSales: recentSales || [],
+        topProducts
+      });
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching dashboard data');
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard stats');
     } finally {
       setLoading(false);
     }
   };
 
-  return { data, loading, error, refreshData: fetchDashboardData };
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  return {
+    stats,
+    loading,
+    error,
+    refetch: fetchDashboardStats
+  };
 };
