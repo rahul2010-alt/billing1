@@ -20,6 +20,7 @@ function AppContent() {
   const { isAuthenticated } = useAppContext();
   const [isConnected, setIsConnected] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -27,6 +28,11 @@ function AppContent() {
       try {
         const connected = await checkSupabaseConnection();
         setIsConnected(connected);
+        
+        // Reset retry count on successful connection
+        if (connected) {
+          setRetryCount(0);
+        }
       } catch (error) {
         console.error('Connection check failed:', error);
         setIsConnected(false);
@@ -34,8 +40,13 @@ function AppContent() {
         setIsLoading(false);
       }
     };
+    
     checkConnection();
-  }, []);
+  }, [retryCount]);
+
+  const handleRetryConnection = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   if (isLoading) {
     return (
@@ -43,6 +54,9 @@ function AppContent() {
         <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Checking database connection...</p>
+          {retryCount > 0 && (
+            <p className="text-sm text-gray-500 mt-2">Retry attempt {retryCount}</p>
+          )}
         </div>
       </div>
     );
@@ -59,17 +73,33 @@ function AppContent() {
           <ul className="text-sm text-gray-600 mb-4 list-disc list-inside">
             <li>Missing or incorrect Supabase configuration</li>
             <li>Network connectivity issues</li>
-            <li>Supabase project not accessible</li>
+            <li>Supabase project not accessible or paused</li>
+            <li>Connection timeout (check console for details)</li>
           </ul>
           <p className="text-sm text-gray-500 mb-4">
             Please check your environment variables and ensure your Supabase project is properly configured.
+            Open the browser console (F12) for detailed error information.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-          >
-            Retry Connection
-          </button>
+          {retryCount > 0 && (
+            <p className="text-sm text-orange-600 mb-4">
+              Retry attempts: {retryCount}
+            </p>
+          )}
+          <div className="space-y-2">
+            <button
+              onClick={handleRetryConnection}
+              className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Retrying...' : 'Retry Connection'}
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       </div>
     );
